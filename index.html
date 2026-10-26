@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050b1f">
+  <title>Prediction Lab</title>
+  <link rel="icon" href="data:,"><!-- no favicon file: stops the browser requesting /favicon.ico (a 404 on every load) -->
+  <meta name="description" content="A self-paced prediction lab mission.">
+  <link rel="preload" href="assets/images/ui/logo_autocomplete_trap.webp" as="image">
+  <link rel="preload" href="assets/images/characters/krish/char_krish_point.webp" as="image">
+  <link rel="preload" href="assets/images/characters/blip/spr_blip_idle.webp" as="image">
+  <link rel="preload" href="assets/images/characters/byte/spr_byte_idle.webp" as="image">
+  <link rel="preload" href="assets/images/characters/dot/spr_dot_idle.webp" as="image">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/game.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/skai-theme.css">
+  <link rel="stylesheet" href="css/accessibility.css">
+</head>
+<body>
+<div id="app" class="app">
+  <div class="backdrop" aria-hidden="true"><div class="backdrop__img" id="backdrop"></div></div>
+
+  <main id="arena" class="arena" aria-label="Prediction laboratory">
+    <div id="world" class="world">
+      <div class="bg" aria-hidden="true">
+        <div class="bg__layer" id="bgA"></div>
+        <div class="bg__layer" id="bgB"></div>
+        <div class="bg__vignette"></div>
+      </div>
+      <div class="dialogue-scrim" aria-hidden="true"></div>
+      <canvas id="fx" class="fx-canvas" width="960" height="540" aria-hidden="true"></canvas>
+
+      <!-- TITLE -->
+      <section class="scene scene--title" data-scene="title" aria-label="Title">
+        <div class="title__ambience" aria-hidden="true">
+          <i class="title__orbit title__orbit--outer"></i>
+          <i class="title__orbit title__orbit--inner"></i>
+          <i class="title__scan"></i>
+        </div>
+        <div class="title-cast" aria-hidden="true">
+          <div class="title-cast__member title-cast__member--blip">
+            <span class="title-cast__shadow"></span>
+            <img src="assets/images/characters/blip/spr_blip_idle.webp" alt="" draggable="false">
+          </div>
+          <div class="title-cast__member title-cast__member--byte">
+            <span class="title-cast__shadow"></span>
+            <img src="assets/images/characters/byte/spr_byte_idle.webp" alt="" draggable="false">
+          </div>
+          <div class="title-cast__member title-cast__member--dot">
+            <span class="title-cast__shadow"></span>
+            <img src="assets/images/characters/dot/spr_dot_idle.webp" alt="" draggable="false">
+          </div>
+          <div class="title-cast__member title-cast__member--krish">
+            <span class="title-cast__shadow"></span>
+            <img src="assets/images/characters/krish/char_krish_point.webp" alt="" draggable="false">
+          </div>
+        </div>
+        <div class="title">
+          <div class="title__halo" aria-hidden="true"></div>
+          <h1 class="title__name" id="titleName"></h1>
+          <div class="loader" id="loader" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="loader__track"><div class="loader__well"><i class="loader__fill" id="loaderFill"></i></div></div>
+            <div class="loader__meta" aria-hidden="true"><span>Loading</span><span id="loaderPct">0%</span></div>
+          </div>
+          <button type="button" class="btn btn--primary btn--xl" id="startBtn" hidden disabled>
+            <span class="title__play" aria-hidden="true"><i></i></span>
+            <span class="btn__label"><strong>Start Mission</strong></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- MAIN LAB: intro, phone, boot, prediction run, cause guess, memory dive, retest -->
+      <section class="scene scene--lab" data-scene="lab" aria-label="Prediction lab">
+        <svg class="conduits" id="conduits" viewBox="0 0 1920 1080" aria-hidden="true">
+          <path d="M 470 560 C 620 640, 700 690, 840 720" />
+          <path d="M 1500 560 C 1360 640, 1260 690, 1110 720" />
+          <path d="M 60 700 C 240 690, 420 700, 520 760" />
+          <path d="M 1880 700 C 1700 690, 1520 700, 1420 760" />
+          <path d="M 960 1080 L 960 900" />
+          <path d="M 335 180 C 335 120, 330 80, 320 0" />
+        </svg>
+        <div class="pod" id="pod">
+          <div class="pod__glow" aria-hidden="true"></div>
+          <div class="pod__blip" id="blipPod"></div>
+          <div class="pod__scan" aria-hidden="true"><i></i><i></i><i></i></div>
+          <button type="button" class="pod__orb" id="podOrb" aria-label="Wake Blip" disabled><span class="pod__orb-core"></span></button>
+        </div>
+        <svg class="beams" id="labBeams" viewBox="0 0 1920 1080" aria-hidden="true"></svg>
+
+        <!-- Opening: a phone keyboard shows what autocomplete is. -->
+        <div class="phone" id="phone" hidden>
+          <div class="phone__body">
+            <span class="phone__notch" aria-hidden="true"></span>
+            <div class="phone__chat">
+              <p class="phone__bubble" id="phoneBubble"><span id="phoneTyped"></span><span class="phone__caret" aria-hidden="true"></span></p>
+            </div>
+            <div class="phone__suggest" id="phoneSuggest" role="group" aria-label="Suggested words"></div>
+            <div class="phone__keys" id="phoneKeys" role="group" aria-label="Keyboard"></div>
+          </div>
+        </div>
+        <div class="question question--phone" id="phoneQ">
+          <p class="question__prompt" id="phonePrompt"></p>
+          <p class="question__note">Any guess is okay.</p>
+          <div class="options options--stack options--phone" id="phoneOptions" role="group"></div>
+          <div class="cta-dock" id="phoneCta"></div>
+        </div>
+
+        <div class="console" id="console">
+          <div class="phrase phrase--blip" id="labPhrase"></div>
+          <p class="prediction-instruction" id="predictionInstruction" hidden>
+            <strong id="predictionPrompt">Which word do you think Blip will choose?</strong>
+            <span id="predictionNote">Any prediction is okay.</span>
+          </p>
+          <div class="choices" id="choices" role="group" aria-label="Your prediction" aria-describedby="predictionInstruction"></div>
+          <div class="pathways" id="pathways" aria-hidden="true"></div>
+          <div class="suggest-row" id="suggestRow"></div>
+          <div class="cta-dock" id="labCta"></div>
+          <ol class="tray" id="tray" aria-label="Blip's answers so far"></ol>
+        </div>
+
+        <div class="evidence" id="evidence">
+          <div class="evidence__rows" id="evidenceRows" role="list" aria-label="What Blip said"></div>
+        </div>
+        <div class="question" id="causeQ">
+          <p class="question__prompt" id="causePrompt"></p>
+          <p class="question__note" id="causeNote">Any guess is okay.</p>
+          <div class="options options--row" id="causeOptions" role="group"></div>
+          <div class="cta-dock" id="causeCta"></div>
+        </div>
+      </section>
+
+      <!-- BYTE VAULT -->
+      <section class="scene scene--vault" data-scene="vault" aria-label="Data vault">
+        <div class="mini-blip" id="miniBlip">
+          <div class="mini-blip__sprite" id="blipMini"></div>
+          <div class="tiny-memory" id="tinyMemory" aria-label="Blip's tiny memory"></div>
+        </div>
+        <div class="base" id="byteBase" aria-hidden="true">
+          <span class="base__label">Byte’s memory</span>
+          <div class="base__stack" id="baseStack"></div>
+          <div class="base__streams"><i></i><i></i><i></i><i></i></div>
+          <div class="base__frame base__frame--l"></div><div class="base__frame base__frame--r"></div>
+        </div>
+        <div class="byte-mount" id="byteMount"></div>
+        <svg class="beams" id="vaultBeams" viewBox="0 0 1920 1080" aria-hidden="true"></svg>
+        <div class="byte-console" id="byteConsole">
+          <div class="phrase phrase--byte" id="bytePhrase"></div>
+          <p class="prediction-instruction byte-ask" id="byteAsk" hidden><strong id="byteAskPrompt">What will Byte say?</strong><span id="byteAskNote">Any guess is okay.</span></p>
+          <div class="choices choices--byte" id="byteChoices" role="group" aria-describedby="byteAsk"></div>
+          <div class="cta-dock" id="byteCta"></div>
+        </div>
+      </section>
+
+      <!-- INSIDE BLIP'S MEMORY -->
+      <section class="scene scene--memory" data-scene="memory" aria-label="Blip's memory">
+        <div class="bank" id="bank">
+          <div class="bank__strips" id="strips" role="group" aria-label="Blip's memory sentences"></div>
+        </div>
+        <svg class="beams" id="memoryBeams" viewBox="0 0 1920 1080" aria-hidden="true"></svg>
+        <div class="said" id="said" role="group" aria-label="What Blip said in the tests"><p class="said__head" aria-hidden="true">Blip said</p><div class="said__list" id="saidList"></div></div>
+        <div class="guess-card" id="guessCard" hidden><span class="guess-card__head">Your idea</span><span class="guess-card__text" id="guessText"></span><strong class="guess-card__result" id="guessResult"></strong></div>
+        <div class="cta-dock cta-dock--memory" id="memoryCta"></div>
+      </section>
+
+      <!-- REPAIR BAY -->
+      <section class="scene scene--repair" data-scene="repair" aria-label="Repair bay">
+        <div class="target" id="repairTarget">
+          <div class="phrase phrase--target" id="repairPhrase"></div>
+          <div class="target__arrow" aria-hidden="true"></div>
+          <div class="target__want" id="repairWant"></div>
+        </div>
+        <div class="repair-blip" id="repairBlip"></div>
+        <div class="rack" id="rack">
+          <div class="rack__head" aria-hidden="true"><span class="rack__lid rack__lid--l"></span><span class="rack__lid rack__lid--r"></span></div>
+          <div class="rack__tokens" id="rackTokens" aria-hidden="true"></div>
+          <ul class="rack__strips" id="rackStrips" aria-label="Blip's memory"></ul>
+        </div>
+        <div class="dock-port" id="dockPort" aria-hidden="true"><span></span></div>
+        <svg class="beams" id="repairBeams" viewBox="0 0 1920 1080" aria-hidden="true"></svg>
+        <div class="cartridges" id="cartridges" role="group"></div>
+        <div class="cta-dock cta-dock--repair" id="repairCta"></div>
+      </section>
+
+      <!-- RULE FORGE -->
+      <section class="scene scene--logic" data-scene="logic" aria-label="Comparison chamber">
+        <div class="side side--blip" id="ruleBlipSide">
+          <div class="side__sprite" id="ruleBlip"></div>
+          <div class="tiny-memory tiny-memory--rule" id="ruleTiny"></div>
+          <div class="side__evidence" id="ruleBlipEvidence"></div>
+        </div>
+        <div class="side side--byte" id="ruleByteSide">
+          <div class="base base--mini" id="ruleBase" aria-hidden="true">
+            <span class="base__label">Byte’s memory</span>
+            <div class="base__stack"></div>
+            <div class="base__streams"><i></i><i></i><i></i></div>
+          </div>
+          <div class="side__sprite side__sprite--byte" id="ruleByte"></div>
+          <div class="side__evidence" id="ruleByteEvidence"></div>
+        </div>
+        <svg class="beams" id="ruleBeams" viewBox="0 0 1920 1080" aria-hidden="true"></svg>
+        <div class="socket" id="socket" aria-hidden="true"><img data-src="assets/images/props/prop_logic_core.webp" alt=""><span class="socket__slot" id="socketSlot"></span></div>
+        <div class="question question--rule" id="ruleQ">
+          <p class="question__prompt" id="rulePrompt"></p>
+          <div class="options options--stack" id="ruleOptions" role="group"></div>
+        </div>
+        <div class="cta-dock cta-dock--rule" id="ruleCta"></div>
+      </section>
+
+      <!-- DOT -->
+      <section class="scene scene--dot" data-scene="dot" aria-label="Dot's system">
+        <div class="dot-mount" id="dotMount"></div>
+        <div class="dot-memory" id="dotMemory">
+          <div class="dot-memory__strips" id="dotStrips" aria-label="Dot's memory"></div>
+          <div class="seek" id="seek" aria-hidden="true"><span class="seek__lens"></span><span class="seek__word" id="seekWord"></span><span class="seek__result" id="seekResult"></span></div>
+        </div>
+        <div class="question question--dot" id="dotQ">
+          <p class="question__lead" id="dotLead"></p>
+          <p class="question__phrase" id="dotPhrase"></p>
+          <div class="options options--yesno" id="dotOptions" role="group"></div>
+          <div class="dot-pips" id="dotPips" aria-hidden="true"></div>
+        </div>
+        <div class="dot-review" id="dotReview" role="list" aria-label="Evidence check"></div>
+        <div class="cta-dock cta-dock--dot" id="dotCta"></div>
+      </section>
+
+      <!-- COMPLETE -->
+      <section class="scene scene--complete" data-scene="complete" aria-label="Mission complete">
+        <div class="finale">
+          <h2 class="finale__headline" id="finaleHeadline"></h2>
+          <div class="finale__body">
+            <div class="recap" id="recap" role="region" aria-label="Mission recap" hidden></div>
+            <div class="cta-dock cta-dock--finale" id="finaleCta"></div>
+          </div>
+        </div>
+        <div class="cast cast--blip" id="castBlip"></div>
+        <div class="cast cast--dot" id="castDot"></div>
+        <div class="cast cast--byte" id="castByte"></div>
+      </section>
+
+      <!-- Action instruction: stays on screen while an action is live (dialogue is separate). -->
+      <p class="task" id="task" role="status" aria-live="polite" hidden>
+        <svg class="task__icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M12 15V7.5a2 2 0 0 1 4 0V14"/><path d="M16 13.5a2 2 0 0 1 4 0V15a2 2 0 0 1 4 0v4.5A7.5 7.5 0 0 1 16.5 27h-1a7 7 0 0 1-5.6-2.8L6.5 19.6a2 2 0 0 1 3-2.6L12 19"/></svg>
+        <span class="task__text" id="taskText"></span>
+      </p>
+    </div>
+
+    <div id="krish"></div>
+
+    <!-- Stakes story — generated environments with the exact approved Blip art layered on top. -->
+    <div class="stakes-story" id="storySequence" aria-hidden="true" hidden>
+      <div class="stakes-story__scrim"></div>
+      <div class="stakes-story__frame">
+        <div class="stakes-story__viewport">
+          <div class="stakes-story__scene" data-story-key="stakes-school">
+            <img class="stakes-story__backdrop" data-src="assets/images/backgrounds/story_school_launch.webp" alt="" draggable="false">
+            <img class="stakes-story__character stakes-story__character--school" data-src="assets/images/characters/blip/spr_blip_idle.webp" alt="" draggable="false">
+          </div>
+          <div class="stakes-story__scene" data-story-key="stakes-strange">
+            <img class="stakes-story__backdrop" data-src="assets/images/backgrounds/story_strange_suggestions.webp" alt="" draggable="false">
+            <img class="stakes-story__character stakes-story__character--strange" data-src="assets/images/characters/blip/spr_blip_awkward.webp" alt="" draggable="false">
+          </div>
+          <div class="stakes-story__scene" data-story-key="stakes-night">
+            <img class="stakes-story__backdrop" data-src="assets/images/backgrounds/story_power_down.webp" alt="" draggable="false">
+            <img class="stakes-story__character stakes-story__character--night" data-src="assets/images/characters/blip/spr_blip_awkward.webp" alt="" draggable="false">
+          </div>
+          <div class="stakes-story__scene" data-story-key="finale-phone">
+            <img class="stakes-story__backdrop" data-src="assets/images/backgrounds/story_finale_phone.webp" alt="" draggable="false">
+            <img class="stakes-story__character stakes-story__character--phone" data-src="assets/images/characters/blip/spr_blip_idle.webp" alt="" draggable="false">
+          </div>
+          <div class="stakes-story__scene" data-story-key="finale-team">
+            <img class="stakes-story__backdrop" data-src="assets/images/backgrounds/story_finale_team.webp" alt="" draggable="false">
+            <img class="stakes-story__character stakes-story__character--guide" data-src="assets/images/characters/krish/char_krish_happy.webp" alt="" draggable="false">
+          </div>
+          <div class="stakes-story__shade"></div>
+          <div class="stakes-story__pips" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HUD (after title only) — SKAI HUD pattern -->
+    <div class="hud" id="hud" hidden>
+      <div class="hud__corner">
+        <svg class="hud__brand" viewBox="22246 1318 202 64" aria-hidden="true" focusable="false"><path d="M22246 1321C22246 1317.13 22249.1 1314 22253 1314H22436C22440.6 1314 22443.9 1318.3 22442.8 1322.72L22429.8 1373.81C22429 1376.87 22426.3 1379.04 22423.1 1379.09L22253.1 1381.88C22249.2 1381.95 22246 1378.79 22246 1374.88V1321Z" fill="white"/><path d="M22340.3 1360.7L22331.5 1360.72C22330.8 1360.72 22330.4 1360 22330.4 1359.52C22330.3 1358.95 22330.6 1358.09 22331.3 1358.08L22340.2 1357.99C22341.1 1357.98 22341.5 1357.1 22341.5 1356.39C22341.5 1355.65 22341.1 1354.81 22340.2 1354.8L22333.8 1354.71C22332.2 1354.69 22330.8 1353.36 22330.3 1352.04C22329.7 1350.46 22330 1348.73 22331.1 1347.54C22331.9 1346.68 22332.9 1346.08 22334.1 1346.08L22342.9 1346.09C22343.7 1346.09 22344.1 1346.89 22344.1 1347.49C22344 1348.24 22343.5 1348.77 22342.7 1348.77L22333.9 1348.82C22333.1 1348.82 22332.7 1349.73 22332.7 1350.37C22332.7 1351.1 22333.1 1352.01 22333.9 1352.02L22340.2 1352.1C22341.8 1352.12 22343.2 1353.18 22343.8 1354.59C22344.4 1355.93 22344.3 1357.4 22343.5 1358.7C22342.9 1359.64 22341.7 1360.69 22340.3 1360.7V1360.7Z" fill="#5267AA"/><path d="M22355.6 1353.32L22360.4 1358.42C22360.9 1358.98 22360.9 1359.69 22360.5 1360.24C22360.2 1360.74 22359.2 1361.03 22358.7 1360.49L22353.2 1354.69L22350.6 1354.71L22350.6 1359.73C22350.6 1360.43 22349.9 1360.75 22349.3 1360.75C22348.7 1360.74 22348 1360.33 22348 1359.59L22347.9 1347.44C22347.9 1346.66 22348.5 1346.12 22349.2 1346.05C22349.8 1345.98 22350.6 1346.4 22350.6 1347.16L22350.6 1352.09L22353.3 1352.07L22355.5 1349.65L22358.4 1346.63C22358.9 1346.08 22359.6 1345.79 22360.3 1346.28C22360.8 1346.68 22361 1347.55 22360.5 1348.21L22355.6 1353.32Z" fill="#5267AA"/><path d="M22372 1349.66L22366.2 1360.06C22365.9 1360.7 22365.1 1360.93 22364.6 1360.68C22364 1360.42 22363.5 1359.61 22363.9 1358.93L22370.5 1346.99C22370.8 1346.36 22371.4 1346.01 22372 1346C22372.6 1345.99 22373.2 1346.27 22373.6 1346.89L22380.2 1358.71C22380.6 1359.43 22380.4 1360.17 22379.7 1360.56C22379.1 1360.97 22378.3 1360.73 22377.9 1360.03L22372 1349.66L22372 1349.66Z" fill="#64A4D4"/><path d="M22386.5 1359.25C22386.5 1360.12 22386 1360.66 22385.4 1360.75C22384.7 1360.84 22383.9 1360.4 22383.9 1359.56L22383.8 1347.46C22383.8 1346.66 22384.3 1346.14 22385 1346.05C22385.6 1345.96 22386.5 1346.35 22386.5 1347.18L22386.5 1359.25Z" fill="#63A4D4"/><path d="M22372.1 1360.72C22373.1 1360.72 22373.9 1359.88 22373.9 1358.85C22373.9 1357.82 22373.1 1356.98 22372.1 1356.98C22371 1356.98 22370.2 1357.82 22370.2 1358.85C22370.2 1359.88 22371 1360.72 22372.1 1360.72Z" fill="#5368A9"/><path d="M22393 1360.88C22392.4 1360.88 22391.9 1360.8 22391.4 1360.63C22390.9 1360.47 22390.6 1360.26 22390.3 1360L22390.7 1359.23C22390.9 1359.46 22391.3 1359.65 22391.7 1359.8C22392.1 1359.96 22392.5 1360.03 22393 1360.03C22393.4 1360.03 22393.7 1359.99 22393.9 1359.89C22394.2 1359.8 22394.4 1359.67 22394.5 1359.51C22394.6 1359.35 22394.7 1359.16 22394.7 1358.96C22394.7 1358.72 22394.6 1358.53 22394.4 1358.38C22394.3 1358.24 22394.1 1358.12 22393.8 1358.03C22393.6 1357.94 22393.3 1357.86 22393 1357.8C22392.7 1357.73 22392.4 1357.65 22392.1 1357.56C22391.8 1357.47 22391.5 1357.36 22391.3 1357.22C22391 1357.08 22390.8 1356.89 22390.7 1356.66C22390.5 1356.42 22390.5 1356.12 22390.5 1355.75C22390.5 1355.38 22390.5 1355.06 22390.7 1354.76C22390.9 1354.46 22391.2 1354.21 22391.6 1354.03C22392 1353.85 22392.5 1353.76 22393.1 1353.76C22393.5 1353.76 22393.9 1353.81 22394.3 1353.92C22394.7 1354.02 22395.1 1354.18 22395.4 1354.37L22395 1355.17C22394.7 1354.97 22394.4 1354.83 22394.1 1354.74C22393.8 1354.65 22393.4 1354.6 22393.1 1354.6C22392.7 1354.6 22392.4 1354.65 22392.2 1354.75C22391.9 1354.85 22391.7 1354.98 22391.6 1355.15C22391.5 1355.31 22391.4 1355.5 22391.4 1355.71C22391.4 1355.95 22391.5 1356.15 22391.7 1356.29C22391.8 1356.44 22392 1356.56 22392.3 1356.64C22392.5 1356.73 22392.8 1356.81 22393.1 1356.88C22393.4 1356.94 22393.7 1357.02 22394 1357.11C22394.3 1357.2 22394.6 1357.31 22394.8 1357.45C22395.1 1357.59 22395.3 1357.77 22395.4 1358.01C22395.6 1358.24 22395.6 1358.54 22395.6 1358.9C22395.6 1359.26 22395.5 1359.58 22395.4 1359.88C22395.2 1360.18 22394.9 1360.42 22394.5 1360.61C22394.1 1360.79 22393.6 1360.88 22393 1360.88L22393 1360.88Z" fill="#4B66AC"/><path d="M22397 1362.72V1355.52H22397.9V1356.95L22397.8 1358.17L22397.9 1359.39V1362.72H22397L22397 1362.72ZM22399.8 1360.85C22399.3 1360.85 22398.9 1360.75 22398.6 1360.55C22398.2 1360.35 22397.9 1360.05 22397.7 1359.65C22397.5 1359.25 22397.4 1358.76 22397.4 1358.16C22397.4 1357.56 22397.5 1357.06 22397.7 1356.67C22397.9 1356.27 22398.2 1355.97 22398.5 1355.77C22398.9 1355.57 22399.3 1355.47 22399.8 1355.47C22400.3 1355.47 22400.7 1355.59 22401.1 1355.81C22401.5 1356.04 22401.8 1356.35 22402.1 1356.75C22402.3 1357.15 22402.4 1357.62 22402.4 1358.16C22402.4 1358.69 22402.3 1359.17 22402.1 1359.57C22401.8 1359.97 22401.5 1360.29 22401.1 1360.51C22400.7 1360.74 22400.3 1360.85 22399.8 1360.85H22399.8ZM22399.7 1360.02C22400 1360.02 22400.3 1359.94 22400.6 1359.79C22400.9 1359.64 22401.1 1359.42 22401.2 1359.14C22401.4 1358.86 22401.5 1358.53 22401.5 1358.16C22401.5 1357.79 22401.4 1357.45 22401.2 1357.18C22401.1 1356.9 22400.9 1356.69 22400.6 1356.54C22400.3 1356.38 22400 1356.31 22399.7 1356.31C22399.3 1356.31 22399 1356.38 22398.8 1356.54C22398.5 1356.69 22398.3 1356.9 22398.1 1357.18C22398 1357.45 22397.9 1357.78 22397.9 1358.16C22397.9 1358.54 22398 1358.86 22398.1 1359.14C22398.3 1359.42 22398.5 1359.64 22398.8 1359.79C22399 1359.94 22399.3 1360.02 22399.7 1360.02Z" fill="#4B66AC"/><path d="M22405.2 1360.85C22404.8 1360.85 22404.5 1360.79 22404.2 1360.65C22403.9 1360.52 22403.7 1360.34 22403.5 1360.1C22403.4 1359.87 22403.3 1359.6 22403.3 1359.3C22403.3 1359 22403.4 1358.76 22403.5 1358.53C22403.6 1358.3 22403.8 1358.11 22404.2 1357.97C22404.5 1357.83 22404.9 1357.76 22405.4 1357.76H22407.1V1358.45H22405.4C22405 1358.45 22404.6 1358.53 22404.5 1358.69C22404.3 1358.85 22404.2 1359.04 22404.2 1359.26C22404.2 1359.52 22404.3 1359.73 22404.5 1359.89C22404.7 1360.04 22405 1360.12 22405.4 1360.12C22405.8 1360.12 22406.1 1360.04 22406.3 1359.88C22406.6 1359.72 22406.8 1359.49 22406.9 1359.18L22407.1 1359.84C22407 1360.15 22406.8 1360.4 22406.4 1360.58C22406.1 1360.76 22405.7 1360.86 22405.2 1360.86L22405.2 1360.85ZM22407 1360.79V1359.68L22406.9 1359.47V1357.57C22406.9 1357.17 22406.8 1356.85 22406.6 1356.63C22406.3 1356.41 22406 1356.3 22405.5 1356.3C22405.2 1356.3 22404.9 1356.35 22404.6 1356.45C22404.3 1356.55 22404 1356.69 22403.8 1356.87L22403.4 1356.15C22403.7 1355.93 22404 1355.76 22404.4 1355.65C22404.8 1355.53 22405.2 1355.47 22405.6 1355.47C22406.3 1355.47 22406.9 1355.65 22407.3 1356C22407.7 1356.35 22407.9 1356.89 22407.9 1357.61V1360.79H22407V1360.79Z" fill="#4B66AC"/><path d="M22411.9 1360.85C22411.4 1360.85 22410.9 1360.74 22410.5 1360.51C22410.1 1360.28 22409.7 1359.96 22409.5 1359.55C22409.3 1359.15 22409.2 1358.68 22409.2 1358.16C22409.2 1357.64 22409.3 1357.17 22409.5 1356.77C22409.7 1356.36 22410.1 1356.05 22410.5 1355.82C22410.9 1355.59 22411.4 1355.47 22411.9 1355.47C22412.4 1355.47 22412.8 1355.57 22413.2 1355.76C22413.6 1355.95 22413.9 1356.23 22414.1 1356.6L22413.4 1357.06C22413.2 1356.81 22413 1356.62 22412.7 1356.49C22412.5 1356.37 22412.2 1356.31 22411.9 1356.31C22411.6 1356.31 22411.3 1356.39 22411 1356.54C22410.7 1356.69 22410.5 1356.9 22410.4 1357.18C22410.2 1357.46 22410.1 1357.78 22410.1 1358.16C22410.1 1358.54 22410.2 1358.87 22410.4 1359.14C22410.5 1359.42 22410.7 1359.64 22411 1359.79C22411.3 1359.94 22411.6 1360.02 22411.9 1360.02C22412.2 1360.02 22412.5 1359.96 22412.7 1359.84C22413 1359.71 22413.2 1359.52 22413.4 1359.26L22414.1 1359.72C22413.9 1360.09 22413.6 1360.37 22413.2 1360.56C22412.8 1360.76 22412.4 1360.86 22411.9 1360.86V1360.85Z" fill="#4B66AC"/><path d="M22417.6 1360.85C22417 1360.85 22416.5 1360.74 22416.1 1360.51C22415.7 1360.28 22415.3 1359.96 22415.1 1359.55C22414.9 1359.15 22414.7 1358.68 22414.7 1358.16C22414.7 1357.64 22414.9 1357.17 22415.1 1356.77C22415.3 1356.36 22415.6 1356.05 22416 1355.82C22416.4 1355.59 22416.9 1355.47 22417.4 1355.47C22417.9 1355.47 22418.4 1355.59 22418.7 1355.81C22419.1 1356.04 22419.4 1356.36 22419.7 1356.76C22419.9 1357.17 22420 1357.65 22420 1358.19C22420 1358.23 22420 1358.28 22420 1358.33C22420 1358.38 22420 1358.43 22420 1358.48H22415.5V1357.79H22419.5L22419.1 1358.03C22419.1 1357.69 22419 1357.39 22418.9 1357.13C22418.7 1356.86 22418.5 1356.65 22418.3 1356.5C22418 1356.36 22417.7 1356.28 22417.4 1356.28C22417.1 1356.28 22416.8 1356.36 22416.5 1356.5C22416.2 1356.65 22416 1356.86 22415.9 1357.13C22415.8 1357.4 22415.7 1357.7 22415.7 1358.05V1358.21C22415.7 1358.56 22415.8 1358.87 22415.9 1359.15C22416.1 1359.42 22416.3 1359.64 22416.6 1359.79C22416.9 1359.94 22417.2 1360.02 22417.6 1360.02C22417.9 1360.02 22418.2 1359.97 22418.5 1359.86C22418.7 1359.75 22418.9 1359.6 22419.1 1359.38L22419.7 1360C22419.4 1360.28 22419.1 1360.49 22418.8 1360.64C22418.4 1360.78 22418 1360.85 22417.6 1360.85Z" fill="#4B66AC"/></svg>
+        <button type="button" class="hud__back" id="backBtn" aria-label="Back to previous checkpoint">
+          <svg class="hud__exit" viewBox="22172 1318 160 124" aria-hidden="true" focusable="false"><path d="M22168 1333C22168 1322.51 22176.5 1314 22187 1314H22292C22299.8 1314 22306.9 1318.87 22309.7 1326.24L22326 1369.12C22329.9 1379.12 22324.7 1390.29 22314.6 1393.82L22193.3 1436.18C22180.9 1440.49 22168 1431.32 22168 1418.24V1333Z" fill="#F5A524"/><path d="M22206.3 1367.48L22228.6 1345.59L22228.6 1356.18L22246 1356.18L22246 1378.88L22228.7 1378.88L22228.6 1389.38L22206.3 1367.48Z" fill="white" transform="translate(10 0)"/></svg>
+        </button>
+      </div>
+      <div class="hud__right">
+        <svg class="hud__wire" viewBox="0 0 520 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 4 L34 44 L520 44"/></svg>
+        <div class="hud__menu-wrap">
+          <button type="button" class="hex" id="soundBtn" aria-label="Sound and captions" aria-haspopup="true" aria-expanded="false" aria-controls="soundMenu">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path class="fill" d="M5 12h5l7-6v20l-7-6H5z"/><path class="on" d="M21 11.5a6 6 0 0 1 0 9M24.5 8a11 11 0 0 1 0 16"/><path class="off" d="M21 12l7 8M28 12l-7 8"/></svg>
+          </button>
+          <div class="hud__menu" id="soundMenu" role="group" aria-label="Sound and captions" hidden>
+            <button type="button" class="menu__item" id="replayBtn">
+              <span class="menu__icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 12a8 8 0 1 1-1.4 7"/><path d="M9.5 7v5.5H15"/></svg></span>
+              <span class="menu__label">Replay Narration</span>
+            </button>
+            <button type="button" class="menu__item" id="muteBtn" aria-pressed="false">
+              <span class="menu__icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path class="fill" d="M7 13h4l6-5v16l-6-5H7z"/><path class="mute-x" d="M20.5 13l6 6M26.5 13l-6 6"/><path class="mute-w" d="M21 12.5a5 5 0 0 1 0 7M24 10a9 9 0 0 1 0 12"/></svg></span>
+              <span class="menu__label" id="muteLabel">Mute All Sounds</span>
+            </button>
+            <button type="button" class="menu__item" id="captionsBtn" aria-pressed="true">
+              <span class="menu__icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M8 9h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5 4v-4H8a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z"/><path class="on" d="M11 14h10M11 18h6"/><path class="off" d="M8 25L25 8"/></svg></span>
+              <span class="menu__label" id="captionsLabel">Hide Captions</span>
+            </button>
+          </div>
+        </div>
+        <button type="button" class="hex" id="infoBtn" aria-label="About this mission" aria-haspopup="dialog" aria-controls="infoModal">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><circle class="fill" cx="16" cy="8.6" r="2.9"/><path d="M16 15v10.5" stroke-width="5"/></svg>
+        </button>
+        <div class="hud__timer" role="timer" aria-label="Elapsed time"><span id="timer">00:00</span></div>
+      </div>
+    </div>
+    <div class="rail" id="rail" hidden></div>
+
+    <button type="button" class="beacon" id="beacon" aria-label="Get a hint from Krish" hidden>
+      <svg viewBox="0 0 40 40" aria-hidden="true"><g class="rays"><path d="M20 3v4M8 8l3 3M32 8l-3 3M4 19h4M32 19h4"/></g><path class="bulb" d="M20 10a8 8 0 0 0-4.8 14.4c.9.7 1.3 1.6 1.3 2.6v1h7v-1c0-1 .4-1.9 1.3-2.6A8 8 0 0 0 20 10z"/><path class="base" d="M16.5 31h7M17.5 34h5"/></svg>
+    </button>
+
+    <div class="hint-bubble" id="hintBubble" role="status" aria-live="polite" hidden>
+      <div class="hint-bubble__box">
+        <span class="hint-bubble__tag"><svg viewBox="0 0 40 40" aria-hidden="true"><path class="bulb" d="M20 10a8 8 0 0 0-4.8 14.4c.9.7 1.3 1.6 1.3 2.6v1h7v-1c0-1 .4-1.9 1.3-2.6A8 8 0 0 0 20 10z"/><path class="base" d="M16.5 31h7M17.5 34h5"/></svg>Hint</span>
+        <p class="hint-bubble__text"></p>
+      </div>
+    </div>
+
+    <div class="info" id="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoTitle" hidden>
+      <div class="info__scrim" id="infoScrim"></div>
+      <div class="info__panel">
+        <div class="info__frame" aria-hidden="true"></div>
+        <button type="button" class="info__close" id="infoClose" aria-label="Close">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M10 10l12 12M22 10L10 22"/></svg>
+        </button>
+        <div class="info__body" id="infoBody"></div>
+      </div>
+    </div>
+
+    <div class="captions" id="captions" aria-hidden="true">
+      <button type="button" class="captions__box" id="captionBox" aria-label="Skip this line" tabindex="-1">
+        <span class="captions__speaker" id="captionSpeaker"></span>
+        <span class="captions__text" id="captionText"></span>
+      </button>
+    </div>
+
+    <div class="flash" id="flash" aria-hidden="true"></div>
+  </main>
+
+  <div class="rotate" aria-hidden="true">
+    <div class="rotate__device"><span></span></div>
+    <p>Rotate your device</p>
+  </div>
+  <p class="sr-only" id="live" aria-live="polite" aria-atomic="true"></p>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/asset-list.js"></script>
+<script src="js/preloader.js"></script>
+<script src="js/vo-cues.js"></script>
+<script src="js/state-machine.js"></script>
+<script src="js/audio-manager.js"></script>
+<script src="js/sprite-player.js"></script>
+<script src="js/krish-controller.js"></script>
+<script src="js/hint-manager.js"></script>
+<script src="js/progress-manager.js"></script>
+<script src="js/input-manager.js"></script>
+<script src="js/game.js"></script>
+<script src="js/scenes.js"></script>
+</body>
+</html>

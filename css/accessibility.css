@@ -1,0 +1,82 @@
+/* Visible, high-contrast focus for keyboard users (never removed). */
+:focus { outline: none; }
+:focus-visible {
+  outline: 5px solid var(--focus);
+  outline-offset: 6px;
+  border-radius: 20px;
+}
+.mword:focus-visible { outline-offset: 3px; border-radius: 12px; }
+.hex:focus-visible, .beacon:focus-visible, .menu__item:focus-visible { outline-offset: 4px; border-radius: 14px; }
+.hud__back:focus-visible { outline: none; }
+.hud__back:focus-visible .hud__exit { outline: 5px solid var(--focus); outline-offset: -10px; border-radius: 10px; }
+.beacon:focus-visible { border-radius: 50%; }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Captions toggle */
+.captions-off .captions { display: none; }
+
+/* Portrait: locally rendered rotate-device experience. */
+.rotate { display: none; }
+@media (orientation: portrait) and (max-aspect-ratio: 4/5) {
+  .rotate {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+    background: radial-gradient(ellipse at 50% 40%, #13265c 0%, #050b1f 70%);
+    color: var(--text);
+    font: 700 22px/1.3 var(--font-body);
+    letter-spacing: 0.02em;
+  }
+  .rotate__device {
+    width: 84px; height: 140px; border-radius: 18px;
+    border: 4px solid var(--cyan);
+    box-shadow: 0 0 30px rgba(63, 224, 255, .5), inset 0 0 20px rgba(63, 224, 255, .25);
+    position: relative;
+    animation: rotate-hint 2.6s ease-in-out infinite;
+  }
+  .rotate__device span { position: absolute; left: 50%; bottom: 10px; width: 18px; height: 4px; margin-left: -9px; border-radius: 2px; background: var(--cyan); }
+  .arena, .backdrop { visibility: hidden; }
+}
+@keyframes rotate-hint { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+
+/* Reduced motion: remove parallax, swoops and bursts; keep essential feedback. */
+.reduced-motion *, .reduced-motion *::before, .reduced-motion *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+}
+.reduced-motion .krish__body,
+.reduced-motion .title__halo,
+.reduced-motion .title__orbit,
+.reduced-motion .title__logo,
+.reduced-motion .stakes-story__scene,
+.reduced-motion .stakes-story__character,
+.reduced-motion .title-cast__member img,
+.reduced-motion .title-cast__shadow,
+.reduced-motion .shelf__flow,
+.reduced-motion .base__streams i,
+.reduced-motion .conduits.is-live path { animation: none !important; }
+.reduced-motion .world { transition: opacity 300ms ease !important; transform: none !important; }
+.reduced-motion .btn:hover:not(:disabled) { transform: none; }
+.reduced-motion .scene { transition-duration: 250ms; }
+.reduced-motion .is-hinted, .reduced-motion .is-shimmer { animation: none !important; box-shadow: 0 0 0 5px var(--gold), 0 0 30px rgba(255, 194, 74, .6) !important; }
+.reduced-motion .mword.is-miss { animation: none !important; opacity: .55; }
+.reduced-motion .said-row.is-pointing .phrase__key { animation: none !important; box-shadow: inset 0 0 0 3px #ffd66e, 0 0 30px rgba(255, 194, 74, .75); }
+.reduced-motion .fxburst__shard { display: none; }
+.reduced-motion .scene--title #startBtn.is-popping { animation: fade-in 250ms ease both; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+/* Forced colors (Windows high contrast) */
+@media (forced-colors: active) {
+  .btn, .choice, .option, .cartridge, .mword, .hex, .hud__back { border: 2px solid ButtonText; }
+  .is-correct, .is-locked { outline: 3px solid Highlight; }
+}
